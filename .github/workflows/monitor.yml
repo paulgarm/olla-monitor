@@ -1,0 +1,25 @@
+name: Surveillance Olla de Nuria 2026
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dependances
+        run: pip install requests beautifulsoup4
+
+      - name: Verifier les inscriptions
+        run: python check_inscriptions.py
