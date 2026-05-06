@@ -8,10 +8,7 @@ from email.mime.text import MIMEText
 URLS = [
     "https://olladenuria.cat/",
     "https://olladenuria.cat/olla-classica/",
-    "https://olladenuria.cat/olla-classica/#inscripcions",
 ]
-
-TARGET = "inscripcions.cat/olladenuria2026"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36"
@@ -39,28 +36,51 @@ def send_email(subject, body):
     except Exception as e:
         print(f"Erreur envoi email: {e}")
 
-def check_url(url):
-    fetch_url = url.split("#")[0]
+def check_page(url):
     try:
-        response = requests.get(fetch_url, timeout=15, headers=HEADERS)
+        response = requests.get(url, timeout=15, headers=HEADERS)
         response.raise_for_status()
     except Exception as e:
         print(f"ERREUR {url}: {e} -> ignore")
-        return False
+        return False, ""
+
+    soup = BeautifulSoup(response.text, "html.parser")
     html = response.text.lower()
-    if TARGET in html:
-        print(f"INSCRIPTIONS 2026 OUVERTES sur {url} !")
-        return True
+    reasons = []
+
+    # Signal 1 : lien vers le formulaire 2026 sur inscripcions.cat
+    for a in soup.find_all("a", href=True):
+        href = a["href"].lower()
+        if "inscripcions.cat" in href and "2026" in href:
+            reasons.append(f"Lien inscripcions 2026 trouve: {a['href']}")
+
+    # Signal 2 : le bouton INSCRIPCIONS OBERTES a un vrai lien (non vide)
+    for a in soup.find_all("a"):
+        if a.get_text(strip=True).upper() == "INSCRIPCIONS OBERTES":
+            href = a.get("href", "").strip()
+            if href and href not in ("#", "", "javascript:void(0)"):
+                reasons.append(f"Bouton INSCRIPCIONS OBERTES actif: {href}")
+
+    if reasons:
+        detail = "\n".join(reasons)
+        print(f"DETECTION sur {url}:\n{detail}")
+        return True, detail
+
     print(f"OK - {url} ({response.status_code})")
-    return False
+    return False, ""
 
 def check():
-    detected = any(check_url(url) for url in URLS)
-    if detected:
-        send_email(
-            "ALERTE - Inscriptions Olla de Nuria 2026 ouvertes !",
-            "Les inscriptions 2026 sont ouvertes !\nhttps://olladenuria.cat/olla-classica/#inscripcions"
-        )
+    all_reasons = []
+    for url in URLS:
+        detected, reason = check_page(url)
+        if detected:
+            all_reasons.append(f"{url}:\n{reason}")
+
+    if all_reasons:
+        body = "Les inscriptions 2026 semblent ouvertes !\n\n"
+        body += "\n\n".join(all_reasons)
+        body += "\n\nhttps://olladenuria.cat/olla-classica/#inscripcions"
+        send_email("ALERTE - Inscriptions Olla de Nuria 2026 ouvertes !", body)
         sys.exit(1)
     else:
         send_email(
