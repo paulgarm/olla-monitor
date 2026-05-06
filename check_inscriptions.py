@@ -9,18 +9,14 @@ URLS = [
 ]
 
 def check_url(url):
-    response = requests.get(url, timeout=10)
+    fetch_url = url.split("#")[0]
+    response = requests.get(fetch_url, timeout=10)
     response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
-    text = soup.get_text().lower()
     html = response.text.lower()
 
+    # Seul signal fiable : lien vers le formulaire 2026
     if "olladenuria2026" in html:
         print(f"INSCRIPTIONS 2026 DETECTEES sur {url} !")
-        return True
-
-    if "inscripcions obertes" in text and "2026" in text:
-        print(f"INSCRIPTIONS 2026 OUVERTES sur {url} !")
         return True
 
     print(f"OK - Pas encore ouvert : {url}")
