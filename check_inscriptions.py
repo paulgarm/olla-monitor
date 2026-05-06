@@ -6,11 +6,16 @@ import sys
 from email.mime.text import MIMEText
 from datetime import date, datetime, timezone
 
+# URL directe du formulaire - signal le plus fiable
+DIRECT_URL = "https://inscripcions.cat/preinscolla2026/formulari_inscripcio"
+
+# URLs de la page Olla de Nuria a surveiller en complement
 URLS = [
     "https://olladenuria.cat/",
     "https://olladenuria.cat/olla-classica/",
 ]
 
+# Patterns a chercher dans les pages olladenuria.cat
 TARGETS = [
     "preinscolla2026",
     "inscripcions.cat/olladenuria2026",
@@ -25,19 +30,17 @@ EMAIL_USER = os.environ.get("EMAIL_USER", "")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
 EMAIL_TO = "soulard.paul@gmail.com"
 
-# Dates cles
-INTENSIVE_START = date(2026, 5, 11)  # a partir du 11/5 : toutes les 5min
-DAILY_HOUR_UTC = 7  # heure UTC pour la verification journaliere (9h heure Paris)
+INTENSIVE_START = date(2026, 5, 11)
+DAILY_HOUR_UTC = 7
 
 def should_run():
-    """Avant le 11/5, ne tourner qu une fois par jour a 9h Paris (7h UTC)."""
     today = date.today()
     if today >= INTENSIVE_START:
         return True, "mode intensif (toutes les 5min)"
     now_utc = datetime.now(timezone.utc)
     if now_utc.hour == DAILY_HOUR_UTC:
         return True, f"mode journalier (avant le {INTENSIVE_START})"
-    return False, f"mode journalier - pas encore l heure (attente de {DAILY_HOUR_UTC}h UTC)"
+    return False, f"mode journalier - pas encore l heure"
 
 def send_email(subject, body):
     if not EMAIL_USER or not EMAIL_PASSWORD:
@@ -57,7 +60,20 @@ def send_email(subject, body):
     except Exception as e:
         print(f"Erreur envoi email: {e}")
 
+def check_direct_url():
+    """Verifie directement le formulaire d inscription - signal prioritaire."""
+    try:
+        r = requests.get(DIRECT_URL, timeout=15, headers=HEADERS)
+        print(f"Direct URL status: {r.status_code} - {DIRECT_URL}")
+        if r.status_code == 200:
+            return True, f"Page formulaire accessible (200): {DIRECT_URL}"
+        return False, ""
+    except Exception as e:
+        print(f"ERREUR direct URL: {e} -> ignore")
+        return False, ""
+
 def check_page(url):
+    """Verifie les pages olladenuria.cat en complement."""
     try:
         response = requests.get(url, timeout=15, headers=HEADERS)
         response.raise_for_status()
@@ -76,7 +92,6 @@ def check_page(url):
             if href and href not in ("#", "", "javascript:void(0)"):
                 reasons.append(f"Bouton INSCRIPCIONS OBERTES actif: {href}")
     if reasons:
-        print(f"DETECTION sur {url}: {reasons}")
         return True, "\n".join(reasons)
     print(f"OK - {url} ({response.status_code})")
     return False, ""
@@ -89,21 +104,28 @@ def check():
 
     print(f"Verification en cours - {mode}")
     all_reasons = []
+
+    # Signal 1 (prioritaire) : URL directe du formulaire
+    detected, reason = check_direct_url()
+    if detected:
+        all_reasons.append(reason)
+
+    # Signal 2 : pages olladenuria.cat
     for url in URLS:
         detected, reason = check_page(url)
         if detected:
-            all_reasons.append(f"{url}:\n{reason}")
+            all_reasons.append(f"{url}: {reason}")
 
     if all_reasons:
-        body = "Les inscriptions 2026 semblent ouvertes !\n\n"
+        body = "Les inscriptions 2026 sont ouvertes !\n\n"
         body += "\n\n".join(all_reasons)
-        body += "\n\nhttps://olladenuria.cat/olla-classica/#inscripcions"
+        body += f"\n\nLien direct: {DIRECT_URL}"
         send_email("ALERTE - Inscriptions Olla de Nuria 2026 ouvertes !", body)
         sys.exit(1)
     else:
         send_email(
             "Olla de Nuria - Verification OK",
-            f"Mode: {mode}\nPas d inscriptions 2026 detectees."
+            f"Mode: {mode}\nFormulaire non accessible (404).\nPas d inscriptions detectees."
         )
         sys.exit(0)
 
