@@ -21,46 +21,8 @@ jobs:
       - name: Installer les dependances
         run: pip install requests beautifulsoup4
 
-      - name: Verifier les inscriptions
-        id: check
-        run: |
-          python check_inscriptions.py
-          echo "status=rien" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Envoyer email - Inscriptions ouvertes
-        if: steps.check.outcome == 'failure'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USER }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "ALERTE - Inscriptions Olla de Nuria 2026 ouvertes !"
-          to: soulard.paul@gmail.com
-          from: Olla Monitor <${{ secrets.EMAIL_USER }}>
-          body: |
-            Les inscriptions pour l'Olla de Nuria 2026 sont ouvertes !
-            Rendez-vous sur : https://olladenuria.cat/olla-classica/#inscripcions
-
-      - name: Envoyer email - Rien de nouveau
-        if: steps.check.outcome == 'success'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USER }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "Olla de Nuria - Verification OK, pas encore ouvert"
-          to: soulard.paul@gmail.com
-          from: Olla Monitor <${{ secrets.EMAIL_USER }}>
-          body: |
-            Verification effectuee - Pas d'inscriptions 2026 detectees.
-            URLs surveillees :
-            - https://olladenuria.cat/
-            - https://olladenuria.cat/olla-classica/
-            - https://olladenuria.cat/olla-classica/#inscripcions
-
-      - name: Echec si inscriptions detectees
-        if: steps.check.outcome == 'failure'
-        run: exit 1
+      - name: Verifier et envoyer email
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python check_inscriptions.py
