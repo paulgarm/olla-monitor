@@ -1,1 +1,28 @@
-name: Surveillance Olla de Nuria 2026on:  schedule:    - cron: "*/5 * * * *"→ Runs every hour  workflow_dispatch:jobs:  check:    runs-on: ubuntu-latest    steps:      - name: Checkout        uses: actions/checkout@v4      - name: Setup Python        uses: actions/setup-python@v5        with:          python-version: "3.11"      - name: Installer les dependances        run: pip install requests beautifulsoup4      - name: Verifier et envoyer email        env:          EMAIL_USER: ${{ secrets.EMAIL_USER }}          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}        run: python check_inscriptions.py
+name: Surveillance Olla de Nuria 2026
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dependances
+        run: pip install requests beautifulsoup4
+
+      - name: Verifier et envoyer email
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python check_inscriptions.py
