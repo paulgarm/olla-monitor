@@ -5,6 +5,7 @@ import sys
 URLS = [
     "https://olladenuria.cat/",
     "https://olladenuria.cat/olla-classica/",
+    "https://olladenuria.cat/olla-classica/#inscripcions",
 ]
 
 def check_url(url):
