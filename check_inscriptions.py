@@ -10,6 +10,13 @@ URLS = [
     "https://olladenuria.cat/olla-classica/",
 ]
 
+# Tous les patterns possibles pour les inscriptions 2026
+TARGETS = [
+    "preinscolla2026",          # lien attendu : inscripcions.cat/preinscolla2026/...
+    "inscripcions.cat/olladenuria2026",  # variante possible
+    "inscripcions.cat/olla2026",         # autre variante possible
+]
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36"
 }
@@ -48,13 +55,12 @@ def check_page(url):
     html = response.text.lower()
     reasons = []
 
-    # Signal 1 : lien vers le formulaire 2026 sur inscripcions.cat
-    for a in soup.find_all("a", href=True):
-        href = a["href"].lower()
-        if "inscripcions.cat" in href and "2026" in href:
-            reasons.append(f"Lien inscripcions 2026 trouve: {a['href']}")
+    # Signal 1 : un des patterns 2026 dans le HTML
+    for target in TARGETS:
+        if target in html:
+            reasons.append(f"Pattern trouve dans le HTML: '{target}'")
 
-    # Signal 2 : le bouton INSCRIPCIONS OBERTES a un vrai lien (non vide)
+    # Signal 2 : le bouton INSCRIPCIONS OBERTES a un vrai lien
     for a in soup.find_all("a"):
         if a.get_text(strip=True).upper() == "INSCRIPCIONS OBERTES":
             href = a.get("href", "").strip()
@@ -62,9 +68,8 @@ def check_page(url):
                 reasons.append(f"Bouton INSCRIPCIONS OBERTES actif: {href}")
 
     if reasons:
-        detail = "\n".join(reasons)
-        print(f"DETECTION sur {url}:\n{detail}")
-        return True, detail
+        print(f"DETECTION sur {url}: {reasons}")
+        return True, "\n".join(reasons)
 
     print(f"OK - {url} ({response.status_code})")
     return False, ""
