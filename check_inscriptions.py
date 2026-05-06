@@ -12,12 +12,14 @@ def check_url(url):
     fetch_url = url.split("#")[0]
     response = requests.get(fetch_url, timeout=10)
     response.raise_for_status()
-    html = response.text.lower()
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    # Seul signal fiable : lien vers le formulaire 2026
-    if "olladenuria2026" in html:
-        print(f"INSCRIPTIONS 2026 DETECTEES sur {url} !")
-        return True
+    # Signal fiable : un lien <a> dont le href contient "inscripcions.cat" et "2026"
+    for a in soup.find_all("a", href=True):
+        href = a["href"].lower()
+        if "inscripcions.cat" in href and "2026" in href:
+            print(f"INSCRIPTIONS 2026 DETECTEES sur {url} ! Lien: {a['href']}")
+            return True
 
     print(f"OK - Pas encore ouvert : {url}")
     return False
